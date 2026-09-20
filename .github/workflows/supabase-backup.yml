@@ -1,0 +1,42 @@
+name: Supabase Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run tests
+        run: npm test
+      - name: Export Supabase snapshot to Drive
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SCHEMA: ${{ secrets.SUPABASE_SCHEMA }}
+          SUPABASE_TABLE: ${{ secrets.SUPABASE_TABLE }}
+          SUPABASE_SELECT: ${{ secrets.SUPABASE_SELECT }}
+          SUPABASE_PAGE_SIZE: ${{ secrets.SUPABASE_PAGE_SIZE }}
+          SUPABASE_ORDER_FIELD: ${{ secrets.SUPABASE_ORDER_FIELD }}
+          SUPABASE_FILTERS_JSON: ${{ secrets.SUPABASE_FILTERS_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_EMAIL }}
+          GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          BACKUP_OUTPUT_DIR: ${{ secrets.BACKUP_OUTPUT_DIR }}
+          BACKUP_FILE_PREFIX: ${{ secrets.BACKUP_FILE_PREFIX }}
+        run: npm run backup:drive
+      - name: Upload status artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-status
+          path: |
+            artifacts/status/drive-backup.json
+            artifacts/backups/*.json
+          if-no-files-found: ignore

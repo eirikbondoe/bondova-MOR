@@ -1,0 +1,17 @@
+{
+  "name": "bondova-mor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "One-way Supabase sync and backup automation for Notion and Google Drive.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "sync:notion": "node src/jobs/sync-notion.js",
+    "backup:drive": "node src/jobs/backup-drive.js",
+    "run:all": "node src/jobs/run-all.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://localhost:26831/eirikbondoe/bondova-MOR"
+  }
+}

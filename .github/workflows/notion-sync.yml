@@ -1,0 +1,42 @@
+name: Notion Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run tests
+        run: npm test
+      - name: Sync Supabase to Notion
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_SCHEMA: ${{ secrets.SUPABASE_SCHEMA }}
+          SUPABASE_TABLE: ${{ secrets.SUPABASE_TABLE }}
+          SUPABASE_SELECT: ${{ secrets.SUPABASE_SELECT }}
+          SUPABASE_PAGE_SIZE: ${{ secrets.SUPABASE_PAGE_SIZE }}
+          SUPABASE_ORDER_FIELD: ${{ secrets.SUPABASE_ORDER_FIELD }}
+          SUPABASE_FILTERS_JSON: ${{ secrets.SUPABASE_FILTERS_JSON }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          NOTION_SOURCE_ID_FIELD: ${{ secrets.NOTION_SOURCE_ID_FIELD }}
+          NOTION_SOURCE_ID_PROPERTY: ${{ secrets.NOTION_SOURCE_ID_PROPERTY }}
+          NOTION_SYNC_HASH_PROPERTY: ${{ secrets.NOTION_SYNC_HASH_PROPERTY }}
+          NOTION_FIELD_MAP_JSON: ${{ secrets.NOTION_FIELD_MAP_JSON }}
+          NOTION_TITLE_FALLBACK: ${{ secrets.NOTION_TITLE_FALLBACK }}
+        run: npm run sync:notion
+      - name: Upload status artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: notion-sync-status
+          path: artifacts/status/notion-sync.json
+          if-no-files-found: ignore
