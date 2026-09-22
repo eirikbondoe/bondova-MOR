@@ -1,10 +1,10 @@
-# Skape
+# Skape MOR
 
-Initial repository scaffold for the `Skape` project.
+Initial repository scaffold for the `Skape MOR` project.
 
 ## Project status
 
-This repository is intentionally lightweight for now. It establishes the project name and a clean starting point so the first implementation pass can happen without repository housekeeping getting in the way.
+This repository is intentionally lightweight for now. It establishes the Skape MOR project name and a clean starting point so the first implementation pass can happen without repository housekeeping getting in the way.
 
 ## What this repo includes
 
