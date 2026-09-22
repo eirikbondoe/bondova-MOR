@@ -1,0 +1,25 @@
+{
+  "name": "bondova-mor",
+  "version": "0.1.0",
+  "description": "Supabase-to-Notion synchronization tool",
+  "main": "src/jobs/sync-notion.js",
+  "scripts": {
+    "sync:notion": "node src/jobs/sync-notion.js"
+  },
+  "keywords": [
+    "supabase",
+    "notion",
+    "sync",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@notionhq/client": "^2.2.10",
+    "@supabase/supabase-js": "^2.38.4"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
