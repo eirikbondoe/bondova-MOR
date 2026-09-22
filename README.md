@@ -1,25 +1,37 @@
 # Skape MOR
 
-Initial repository scaffold for the `Skape MOR` project.
+Starter repository for the `Skape MOR` project.
 
 ## Project status
 
-This repository is intentionally lightweight for now. It establishes the Skape MOR project name and a clean starting point so the first implementation pass can happen without repository housekeeping getting in the way.
+This repository is intentionally lightweight. It provides a visible starter structure for product setup, contribution rules, agent collaboration, and the canonical superprompt.
 
-## What this repo includes
+## Repository guide
 
-- Basic repository documentation
-- Common local files ignored by Git
-- Consistent editor and Git text-file defaults
+- `README.md` — quick orientation and pointers to the canonical documents
+- `CONTRIBUTING.md` — contributor rules, approval boundaries, and review expectations
+- `AGENTS.md` — visible agent roles, limits, and collaboration model
+- `docs/superprompt.md` — canonical superprompt and source of truth for agent guidance
+
+## Agent visibility
+
+Agents may help with planning, drafting, implementation, review, and documentation, but they must work within the visible rules documented in this repository.
+
+- Canonical prompt: `/home/runner/work/bondova-MOR/bondova-MOR/docs/superprompt.md`
+- Agent roles and limits: `/home/runner/work/bondova-MOR/bondova-MOR/AGENTS.md`
+- Approval and contribution rules: `/home/runner/work/bondova-MOR/bondova-MOR/CONTRIBUTING.md`
+
+No hidden prompt-only behavior should override these visible repository documents.
 
 ## Getting started
 
 Before adding code:
 
 1. Define the product scope
-2. Choose the application stack
-3. Add the initial implementation structure
-4. Set up build, test, and deployment workflows
+2. Review the canonical superprompt and approval rules
+3. Choose the application stack
+4. Add the initial implementation structure
+5. Set up build, test, and deployment workflows
 
 ## Suggested next steps
 
