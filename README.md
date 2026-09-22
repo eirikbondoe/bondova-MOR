@@ -5,7 +5,7 @@ Supabase → Notion sync for selected table rows.
 ## Setup
 
 1. Install dependencies:
-   - `npm install`
+   - `npm ci`
 2. Copy `.env.example` to `.env`
 3. Fill in all required environment variables
 

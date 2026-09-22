@@ -19,10 +19,21 @@ function requireEnv() {
 
 function buildNotionFilter(propertyName, propertyType, value) {
   if (propertyType === "title") {
-    return { property: propertyName, title: { equals: value } };
+    return { property: propertyName, title: { contains: value } };
   }
 
-  return { property: propertyName, rich_text: { equals: value } };
+  return { property: propertyName, rich_text: { contains: value } };
+}
+
+function getPlainText(propertyName, propertyType, page) {
+  const property = page?.properties?.[propertyName];
+  if (!property) return "";
+
+  if (propertyType === "title") {
+    return (property.title || []).map((entry) => entry?.plain_text || "").join("");
+  }
+
+  return (property.rich_text || []).map((entry) => entry?.plain_text || "").join("");
 }
 
 function buildKeyProperty(propertyName, propertyType, value) {
@@ -79,10 +90,14 @@ async function findExistingPage(notion, databaseId, keyProperty, keyPropertyType
   const response = await notion.databases.query({
     database_id: databaseId,
     filter: buildNotionFilter(keyProperty, keyPropertyType, keyValue),
-    page_size: 1,
+    page_size: 100,
   });
 
-  return response.results[0]?.id;
+  const exactMatch = response.results.find(
+    (page) => getPlainText(keyProperty, keyPropertyType, page) === keyValue
+  );
+
+  return exactMatch?.id;
 }
 
 async function syncRow(notion, config, row) {
