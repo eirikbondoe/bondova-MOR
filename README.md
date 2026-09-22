@@ -26,9 +26,14 @@ Supabase → Notion sync for selected table rows.
 - `SUPABASE_ID_COLUMN` (optional, default `id`)
 - `NOTION_TOKEN` (required)
 - `NOTION_DATABASE_ID` (required)
-- `NOTION_KEY_PROPERTY` (optional, default `Supabase ID`)
-- `NOTION_KEY_PROPERTY_TYPE` (optional: `title` or `rich_text`, default `rich_text`)
+- `NOTION_KEY_PROPERTY` (optional, default `Name`)
+- `NOTION_KEY_PROPERTY_TYPE` (optional: `title` or `rich_text`, default `title`)
+- `NOTION_TITLE_PROPERTY` (optional, default `Name`, must be a writable Notion `title` property)
 - `NOTION_PAYLOAD_PROPERTY` (optional, default `Payload`)
+
+The target Notion database must include both:
+- A writable `title` property (used for page creation, configured via `NOTION_TITLE_PROPERTY`)
+- A writable `rich_text` property for payload storage (`NOTION_PAYLOAD_PROPERTY`)
 
 ## GitHub Actions
 
@@ -48,4 +53,5 @@ Optional GitHub Secrets:
 - `SUPABASE_ID_COLUMN`
 - `NOTION_KEY_PROPERTY`
 - `NOTION_KEY_PROPERTY_TYPE`
+- `NOTION_TITLE_PROPERTY`
 - `NOTION_PAYLOAD_PROPERTY`

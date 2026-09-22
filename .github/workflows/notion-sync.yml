@@ -35,5 +35,6 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           NOTION_KEY_PROPERTY: ${{ secrets.NOTION_KEY_PROPERTY }}
           NOTION_KEY_PROPERTY_TYPE: ${{ secrets.NOTION_KEY_PROPERTY_TYPE }}
+          NOTION_TITLE_PROPERTY: ${{ secrets.NOTION_TITLE_PROPERTY }}
           NOTION_PAYLOAD_PROPERTY: ${{ secrets.NOTION_PAYLOAD_PROPERTY }}
         run: npm run sync:notion

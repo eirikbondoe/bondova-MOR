@@ -66,34 +66,6 @@ function buildPayloadProperty(propertyName, row) {
       if (currentChunk) richText.push({ text: { content: currentChunk } });
       currentChunk = char;
     }
-
-    async function getNotionDatabase(notion, databaseId) {
-      return notion.databases.retrieve({ database_id: databaseId });
-    }
-
-    function validateNotionProperties(database, config) {
-      const keyProperty = database.properties?.[config.notionKeyProperty];
-      if (!keyProperty) {
-        throw new Error(`Notion key property '${config.notionKeyProperty}' does not exist in database`);
-      }
-
-      if (keyProperty.type !== config.notionKeyPropertyType) {
-        throw new Error(
-          `Notion key property '${config.notionKeyProperty}' must be type '${config.notionKeyPropertyType}', found '${keyProperty.type}'`
-        );
-      }
-
-      const payloadProperty = database.properties?.[config.notionPayloadProperty];
-      if (!payloadProperty) {
-        throw new Error(`Notion payload property '${config.notionPayloadProperty}' does not exist in database`);
-      }
-
-      if (payloadProperty.type !== "rich_text") {
-        throw new Error(
-          `Notion payload property '${config.notionPayloadProperty}' must be type 'rich_text', found '${payloadProperty.type}'`
-        );
-      }
-    }
   }
   if (currentChunk) richText.push({ text: { content: currentChunk } });
 
@@ -106,6 +78,53 @@ function buildPayloadProperty(propertyName, row) {
       rich_text: richText,
     },
   };
+}
+
+function buildTitleProperty(propertyName, value) {
+  return {
+    [propertyName]: {
+      title: [{ text: { content: value } }],
+    },
+  };
+}
+
+async function getNotionDatabase(notion, databaseId) {
+  return notion.databases.retrieve({ database_id: databaseId });
+}
+
+function validateNotionProperties(database, config) {
+  const keyProperty = database.properties?.[config.notionKeyProperty];
+  if (!keyProperty) {
+    throw new Error(`Notion key property '${config.notionKeyProperty}' does not exist in database`);
+  }
+
+  if (keyProperty.type !== config.notionKeyPropertyType) {
+    throw new Error(
+      `Notion key property '${config.notionKeyProperty}' must be type '${config.notionKeyPropertyType}', found '${keyProperty.type}'`
+    );
+  }
+
+  const payloadProperty = database.properties?.[config.notionPayloadProperty];
+  if (!payloadProperty) {
+    throw new Error(`Notion payload property '${config.notionPayloadProperty}' does not exist in database`);
+  }
+
+  if (payloadProperty.type !== "rich_text") {
+    throw new Error(
+      `Notion payload property '${config.notionPayloadProperty}' must be type 'rich_text', found '${payloadProperty.type}'`
+    );
+  }
+
+  const titleProperty = database.properties?.[config.notionTitleProperty];
+  if (!titleProperty) {
+    throw new Error(`Notion title property '${config.notionTitleProperty}' does not exist in database`);
+  }
+
+  if (titleProperty.type !== "title") {
+    throw new Error(
+      `Notion title property '${config.notionTitleProperty}' must be type 'title', found '${titleProperty.type}'`
+    );
+  }
 }
 
 async function fetchSupabaseRows(supabase, table, selectClause) {
@@ -164,7 +183,11 @@ async function syncRow(notion, config, row, existingPagesMap) {
   const rowIdValue = String(rowId);
   const keyProperty = buildKeyProperty(config.notionKeyProperty, config.notionKeyPropertyType, rowIdValue);
   const payloadProperty = buildPayloadProperty(config.notionPayloadProperty, row);
-  const properties = { ...keyProperty, ...payloadProperty };
+  const titleProperty =
+    config.notionKeyPropertyType === "title" && config.notionKeyProperty === config.notionTitleProperty
+      ? {}
+      : buildTitleProperty(config.notionTitleProperty, rowIdValue);
+  const properties = { ...titleProperty, ...keyProperty, ...payloadProperty };
 
   const existingPageId = existingPagesMap.get(rowIdValue);
 
@@ -192,8 +215,9 @@ async function main() {
     supabaseSelect: process.env.SUPABASE_SELECT || "*",
     supabaseIdColumn: process.env.SUPABASE_ID_COLUMN || "id",
     notionDatabaseId: process.env.NOTION_DATABASE_ID,
-    notionKeyProperty: process.env.NOTION_KEY_PROPERTY || "Supabase ID",
-    notionKeyPropertyType: process.env.NOTION_KEY_PROPERTY_TYPE || "rich_text",
+    notionKeyProperty: process.env.NOTION_KEY_PROPERTY || "Name",
+    notionKeyPropertyType: process.env.NOTION_KEY_PROPERTY_TYPE || "title",
+    notionTitleProperty: process.env.NOTION_TITLE_PROPERTY || "Name",
     notionPayloadProperty: process.env.NOTION_PAYLOAD_PROPERTY || "Payload",
   };
 
