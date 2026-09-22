@@ -2,6 +2,10 @@
 
 Supabase → Notion sync for selected table rows.
 
+## Requirements
+
+- Node.js 22+
+
 ## Setup
 
 1. Install dependencies:

@@ -19,21 +19,10 @@ function requireEnv() {
 
 function buildNotionFilter(propertyName, propertyType, value) {
   if (propertyType === "title") {
-    return { property: propertyName, title: { contains: value } };
+    return { property: propertyName, title: { equals: value } };
   }
 
-  return { property: propertyName, rich_text: { contains: value } };
-}
-
-function getPlainText(propertyName, propertyType, page) {
-  const property = page?.properties?.[propertyName];
-  if (!property) return "";
-
-  if (propertyType === "title") {
-    return (property.title || []).map((entry) => entry?.plain_text || "").join("");
-  }
-
-  return (property.rich_text || []).map((entry) => entry?.plain_text || "").join("");
+  return { property: propertyName, rich_text: { equals: value } };
 }
 
 function buildKeyProperty(propertyName, propertyType, value) {
@@ -54,11 +43,23 @@ function buildKeyProperty(propertyName, propertyType, value) {
 
 function buildPayloadProperty(propertyName, row) {
   const payload = JSON.stringify(row);
-  const content = payload.length > 1900 ? `${payload.slice(0, 1900)}...` : payload;
+  const chunkSize = 1900;
+  const chunkCount = Math.ceil(payload.length / chunkSize);
+
+  if (chunkCount > 100) {
+    throw new Error(
+      "Serialized payload is too large for a single Notion rich_text property. Narrow SUPABASE_SELECT or row size."
+    );
+  }
+
+  const richText = [];
+  for (let i = 0; i < payload.length; i += chunkSize) {
+    richText.push({ text: { content: payload.slice(i, i + chunkSize) } });
+  }
 
   return {
     [propertyName]: {
-      rich_text: [{ text: { content } }],
+      rich_text: richText,
     },
   };
 }
@@ -90,14 +91,10 @@ async function findExistingPage(notion, databaseId, keyProperty, keyPropertyType
   const response = await notion.databases.query({
     database_id: databaseId,
     filter: buildNotionFilter(keyProperty, keyPropertyType, keyValue),
-    page_size: 100,
+    page_size: 1,
   });
 
-  const exactMatch = response.results.find(
-    (page) => getPlainText(keyProperty, keyPropertyType, page) === keyValue
-  );
-
-  return exactMatch?.id;
+  return response.results[0]?.id;
 }
 
 async function syncRow(notion, config, row) {
