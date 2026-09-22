@@ -22,15 +22,15 @@ function buildNotionFilter(propertyName, propertyType) {
     return { property: propertyName, title: { is_not_empty: true } };
   }
 
-  function buildNotionValueFilter(propertyName, propertyType, value) {
-    if (propertyType === "title") {
-      return { property: propertyName, title: { contains: value } };
-    }
+  return { property: propertyName, rich_text: { is_not_empty: true } };
+}
 
-    return { property: propertyName, rich_text: { contains: value } };
+function buildNotionValueFilter(propertyName, propertyType, value) {
+  if (propertyType === "title") {
+    return { property: propertyName, title: { contains: value } };
   }
 
-  return { property: propertyName, rich_text: { is_not_empty: true } };
+  return { property: propertyName, rich_text: { contains: value } };
 }
 
 function getPlainText(propertyName, propertyType, page) {
