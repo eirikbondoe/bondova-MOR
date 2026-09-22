@@ -33,6 +33,8 @@ Supabase → Notion sync for selected table rows.
 ## GitHub Actions
 
 Workflow: `.github/workflows/notion-sync.yml`
+- Schedule: every 6 hours (`0 */6 * * *`)
+- Manual run: open the repository **Actions** tab, choose **Supabase to Notion Sync**, then click **Run workflow**.
 
 Required GitHub Secrets:
 - `SUPABASE_URL`

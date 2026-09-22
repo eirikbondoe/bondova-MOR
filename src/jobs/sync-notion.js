@@ -17,7 +17,7 @@ function requireEnv() {
   }
 }
 
-function buildNotionFilter(propertyName, propertyType, value) {
+function buildNotionFilter(propertyName, propertyType) {
   if (propertyType === "title") {
     return { property: propertyName, title: { is_not_empty: true } };
   }
@@ -66,6 +66,34 @@ function buildPayloadProperty(propertyName, row) {
       if (currentChunk) richText.push({ text: { content: currentChunk } });
       currentChunk = char;
     }
+
+    async function getNotionDatabase(notion, databaseId) {
+      return notion.databases.retrieve({ database_id: databaseId });
+    }
+
+    function validateNotionProperties(database, config) {
+      const keyProperty = database.properties?.[config.notionKeyProperty];
+      if (!keyProperty) {
+        throw new Error(`Notion key property '${config.notionKeyProperty}' does not exist in database`);
+      }
+
+      if (keyProperty.type !== config.notionKeyPropertyType) {
+        throw new Error(
+          `Notion key property '${config.notionKeyProperty}' must be type '${config.notionKeyPropertyType}', found '${keyProperty.type}'`
+        );
+      }
+
+      const payloadProperty = database.properties?.[config.notionPayloadProperty];
+      if (!payloadProperty) {
+        throw new Error(`Notion payload property '${config.notionPayloadProperty}' does not exist in database`);
+      }
+
+      if (payloadProperty.type !== "rich_text") {
+        throw new Error(
+          `Notion payload property '${config.notionPayloadProperty}' must be type 'rich_text', found '${payloadProperty.type}'`
+        );
+      }
+    }
   }
   if (currentChunk) richText.push({ text: { content: currentChunk } });
 
@@ -103,28 +131,33 @@ async function fetchSupabaseRows(supabase, table, selectClause) {
   return rows;
 }
 
-async function findExistingPage(notion, databaseId, keyProperty, keyPropertyType, keyValue) {
+async function buildExistingPagesMap(notion, databaseId, keyProperty, keyPropertyType, keyValues) {
+  const mapping = new Map();
+  if (keyValues.size === 0) return mapping;
+
   let cursor = undefined;
   do {
     const response = await notion.databases.query({
       database_id: databaseId,
-      filter: buildNotionFilter(keyProperty, keyPropertyType, keyValue),
+      filter: buildNotionFilter(keyProperty, keyPropertyType),
       start_cursor: cursor,
       page_size: 100,
     });
 
-    const exactMatch = response.results.find(
-      (page) => getPlainText(keyProperty, keyPropertyType, page) === keyValue
-    );
-    if (exactMatch?.id) return exactMatch.id;
+    for (const page of response.results) {
+      const key = getPlainText(keyProperty, keyPropertyType, page);
+      if (keyValues.has(key) && !mapping.has(key)) {
+        mapping.set(key, page.id);
+      }
+    }
 
     cursor = response.has_more ? response.next_cursor : undefined;
   } while (cursor);
 
-  return undefined;
+  return mapping;
 }
 
-async function syncRow(notion, config, row) {
+async function syncRow(notion, config, row, existingPagesMap) {
   const rowId = row[config.supabaseIdColumn];
   if (rowId === undefined || rowId === null) return "skipped";
 
@@ -133,13 +166,7 @@ async function syncRow(notion, config, row) {
   const payloadProperty = buildPayloadProperty(config.notionPayloadProperty, row);
   const properties = { ...keyProperty, ...payloadProperty };
 
-  const existingPageId = await findExistingPage(
-    notion,
-    config.notionDatabaseId,
-    config.notionKeyProperty,
-    config.notionKeyPropertyType,
-    rowIdValue
-  );
+  const existingPageId = existingPagesMap.get(rowIdValue);
 
   if (existingPageId) {
     await notion.pages.update({
@@ -149,10 +176,11 @@ async function syncRow(notion, config, row) {
     return "updated";
   }
 
-  await notion.pages.create({
+  const createdPage = await notion.pages.create({
     parent: { database_id: config.notionDatabaseId },
     properties,
   });
+  existingPagesMap.set(rowIdValue, createdPage.id);
   return "created";
 }
 
@@ -175,16 +203,31 @@ async function main() {
 
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const notion = new Client({ auth: process.env.NOTION_TOKEN });
+  const database = await getNotionDatabase(notion, config.notionDatabaseId);
+  validateNotionProperties(database, config);
 
   const rows = await fetchSupabaseRows(supabase, config.supabaseTable, config.supabaseSelect);
   console.log(`Found ${rows.length} row(s) in Supabase table ${config.supabaseTable}`);
+  const keyValues = new Set(
+    rows
+      .map((row) => row[config.supabaseIdColumn])
+      .filter((value) => value !== undefined && value !== null)
+      .map((value) => String(value))
+  );
+  const existingPagesMap = await buildExistingPagesMap(
+    notion,
+    config.notionDatabaseId,
+    config.notionKeyProperty,
+    config.notionKeyPropertyType,
+    keyValues
+  );
 
   let created = 0;
   let updated = 0;
   let skipped = 0;
 
   for (const row of rows) {
-    const result = await syncRow(notion, config, row);
+    const result = await syncRow(notion, config, row, existingPagesMap);
     if (result === "created") created += 1;
     else if (result === "updated") updated += 1;
     else skipped += 1;
