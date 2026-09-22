@@ -19,10 +19,21 @@ function requireEnv() {
 
 function buildNotionFilter(propertyName, propertyType, value) {
   if (propertyType === "title") {
-    return { property: propertyName, title: { equals: value } };
+    return { property: propertyName, title: { contains: value } };
   }
 
-  return { property: propertyName, rich_text: { equals: value } };
+  return { property: propertyName, rich_text: { contains: value } };
+}
+
+function getPlainText(propertyName, propertyType, page) {
+  const property = page?.properties?.[propertyName];
+  if (!property) return "";
+
+  if (propertyType === "title") {
+    return (property.title || []).map((entry) => entry?.plain_text || "").join("");
+  }
+
+  return (property.rich_text || []).map((entry) => entry?.plain_text || "").join("");
 }
 
 function buildKeyProperty(propertyName, propertyType, value) {
@@ -43,23 +54,15 @@ function buildKeyProperty(propertyName, propertyType, value) {
 
 function buildPayloadProperty(propertyName, row) {
   const payload = JSON.stringify(row);
-  const chunkSize = 1900;
-  const chunkCount = Math.ceil(payload.length / chunkSize);
-
-  if (chunkCount > 100) {
+  if (payload.length > 1900) {
     throw new Error(
-      "Serialized payload is too large for a single Notion rich_text property. Narrow SUPABASE_SELECT or row size."
+      "Serialized payload is too large for Notion rich_text content. Narrow SUPABASE_SELECT or row size."
     );
-  }
-
-  const richText = [];
-  for (let i = 0; i < payload.length; i += chunkSize) {
-    richText.push({ text: { content: payload.slice(i, i + chunkSize) } });
   }
 
   return {
     [propertyName]: {
-      rich_text: richText,
+      rich_text: [{ text: { content: payload } }],
     },
   };
 }
@@ -88,13 +91,24 @@ async function fetchSupabaseRows(supabase, table, selectClause) {
 }
 
 async function findExistingPage(notion, databaseId, keyProperty, keyPropertyType, keyValue) {
-  const response = await notion.databases.query({
-    database_id: databaseId,
-    filter: buildNotionFilter(keyProperty, keyPropertyType, keyValue),
-    page_size: 1,
-  });
+  let cursor = undefined;
+  do {
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      filter: buildNotionFilter(keyProperty, keyPropertyType, keyValue),
+      start_cursor: cursor,
+      page_size: 100,
+    });
 
-  return response.results[0]?.id;
+    const exactMatch = response.results.find(
+      (page) => getPlainText(keyProperty, keyPropertyType, page) === keyValue
+    );
+    if (exactMatch?.id) return exactMatch.id;
+
+    cursor = response.has_more ? response.next_cursor : undefined;
+  } while (cursor);
+
+  return undefined;
 }
 
 async function syncRow(notion, config, row) {
