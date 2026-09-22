@@ -19,10 +19,10 @@ function requireEnv() {
 
 function buildNotionFilter(propertyName, propertyType, value) {
   if (propertyType === "title") {
-    return { property: propertyName, title: { contains: value } };
+    return { property: propertyName, title: { is_not_empty: true } };
   }
 
-  return { property: propertyName, rich_text: { contains: value } };
+  return { property: propertyName, rich_text: { is_not_empty: true } };
 }
 
 function getPlainText(propertyName, propertyType, page) {
@@ -54,15 +54,28 @@ function buildKeyProperty(propertyName, propertyType, value) {
 
 function buildPayloadProperty(propertyName, row) {
   const payload = JSON.stringify(row);
-  if (payload.length > 1900) {
-    throw new Error(
-      "Serialized payload is too large for Notion rich_text content. Narrow SUPABASE_SELECT or row size."
-    );
+  const maxChunkBytes = 1800;
+  const richText = [];
+  let currentChunk = "";
+
+  for (const char of payload) {
+    const candidate = currentChunk + char;
+    if (Buffer.byteLength(candidate, "utf8") <= maxChunkBytes) {
+      currentChunk = candidate;
+    } else {
+      if (currentChunk) richText.push({ text: { content: currentChunk } });
+      currentChunk = char;
+    }
+  }
+  if (currentChunk) richText.push({ text: { content: currentChunk } });
+
+  if (richText.length === 0) {
+    richText.push({ text: { content: "" } });
   }
 
   return {
     [propertyName]: {
-      rich_text: [{ text: { content: payload } }],
+      rich_text: richText,
     },
   };
 }
@@ -181,6 +194,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("Sync failed:", error.message);
+  console.error("Sync failed:", error);
+  if (error?.stack) {
+    console.error(error.stack);
+  }
   process.exit(1);
 });
