@@ -22,6 +22,14 @@ function buildNotionFilter(propertyName, propertyType) {
     return { property: propertyName, title: { is_not_empty: true } };
   }
 
+  function buildNotionValueFilter(propertyName, propertyType, value) {
+    if (propertyType === "title") {
+      return { property: propertyName, title: { contains: value } };
+    }
+
+    return { property: propertyName, rich_text: { contains: value } };
+  }
+
   return { property: propertyName, rich_text: { is_not_empty: true } };
 }
 
@@ -64,6 +72,9 @@ function buildPayloadProperty(propertyName, row) {
       currentChunk = candidate;
     } else {
       if (currentChunk) richText.push({ text: { content: currentChunk } });
+      if (Buffer.byteLength(char, "utf8") > maxChunkBytes) {
+        throw new Error("Encountered a character that exceeds Notion rich_text byte limit");
+      }
       currentChunk = char;
     }
   }
@@ -154,26 +165,56 @@ async function buildExistingPagesMap(notion, databaseId, keyProperty, keyPropert
   const mapping = new Map();
   if (keyValues.size === 0) return mapping;
 
-  let cursor = undefined;
-  do {
-    const response = await notion.databases.query({
-      database_id: databaseId,
-      filter: buildNotionFilter(keyProperty, keyPropertyType),
-      start_cursor: cursor,
-      page_size: 100,
-    });
+  const batchSize = 20;
+  const allKeys = Array.from(keyValues);
+  for (let i = 0; i < allKeys.length; i += batchSize) {
+    const keyBatch = allKeys.slice(i, i + batchSize);
+    let cursor = undefined;
 
-    for (const page of response.results) {
-      const key = getPlainText(keyProperty, keyPropertyType, page);
-      if (keyValues.has(key) && !mapping.has(key)) {
-        mapping.set(key, page.id);
+    do {
+      const response = await notion.databases.query({
+        database_id: databaseId,
+        filter: {
+          and: [
+            buildNotionFilter(keyProperty, keyPropertyType),
+            {
+              or: keyBatch.map((key) => buildNotionValueFilter(keyProperty, keyPropertyType, key)),
+            },
+          ],
+        },
+        start_cursor: cursor,
+        page_size: 100,
+      });
+
+      for (const page of response.results) {
+        const key = getPlainText(keyProperty, keyPropertyType, page);
+        if (keyValues.has(key) && !mapping.has(key)) {
+          mapping.set(key, page.id);
+        }
       }
-    }
 
-    cursor = response.has_more ? response.next_cursor : undefined;
-  } while (cursor);
+      cursor = response.has_more ? response.next_cursor : undefined;
+    } while (cursor);
+  }
 
   return mapping;
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = [];
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const current = nextIndex;
+      nextIndex += 1;
+      if (current >= items.length) return;
+      results[current] = await mapper(items[current], current);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
 }
 
 async function syncRow(notion, config, row, existingPagesMap) {
@@ -250,8 +291,10 @@ async function main() {
   let updated = 0;
   let skipped = 0;
 
-  for (const row of rows) {
-    const result = await syncRow(notion, config, row, existingPagesMap);
+  const rowResults = await mapWithConcurrency(rows, 3, async (row) =>
+    syncRow(notion, config, row, existingPagesMap)
+  );
+  for (const result of rowResults) {
     if (result === "created") created += 1;
     else if (result === "updated") updated += 1;
     else skipped += 1;
