@@ -1,0 +1,22 @@
+{
+  "name": "bondova-mor",
+  "version": "1.0.0",
+  "description": "Supabase to Notion integration scripts",
+  "main": "src/jobs/sync-notion.js",
+  "scripts": {
+    "sync:notion": "node src/jobs/sync-notion.js",
+    "test": "node -e \"console.log('No tests configured')\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://localhost:26831/eirikbondoe/bondova-MOR"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@notionhq/client": "^5.26.0",
+    "@supabase/supabase-js": "^2.116.0",
+    "dotenv": "^18.0.2"
+  }
+}
