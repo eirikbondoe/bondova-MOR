@@ -1,28 +1,83 @@
-# Skape MOR
+# bondova-MOR
 
-Initial repository scaffold for the `Skape MOR` project.
+A system where **Skape** generates ideas that are analyzed by our custom-built **Analysis Motor**.
 
-## Project status
+## Project Vision
 
-This repository is intentionally lightweight for now. It establishes the Skape MOR project name and a clean starting point so the first implementation pass can happen without repository housekeeping getting in the way.
+bondova-MOR processes the following flow:
 
-## What this repo includes
+```
+Skape (Ideas Source) → Adapter → Analysis Motor → Storage → Results
+```
 
-- Basic repository documentation
-- Common local files ignored by Git
-- Consistent editor and Git text-file defaults
+## Architecture
 
-## Getting started
+- **Skape Adapter** - Normalizes ideas from Skape
+- **Analysis Motor** - Core analysis engine for idea evaluation
+- **Storage Layer** - Persists and retrieves analysis results
 
-Before adding code:
+See `docs/superprompt.md` for detailed architecture documentation.
 
-1. Define the product scope
-2. Choose the application stack
-3. Add the initial implementation structure
-4. Set up build, test, and deployment workflows
+## Quick Start
 
-## Suggested next steps
+```bash
+# Install dependencies
+npm install
 
-- Add the first application or package scaffold
-- Introduce CI once the stack is chosen
-- Document local development commands
+# Set up environment
+cp .env.example .env.local
+
+# Run tests
+npm test
+
+# Start development
+npm run dev
+```
+
+## Project Structure
+
+```
+bondova-MOR/
+├── src/
+│   ├── skape-adapter/     # Skape integration
+│   ├── motor/             # Analysis engine
+│   ├── storage/           # Database layer
+│   └── index.js           # Entry point
+├── tests/                 # Test files
+├── docs/                  # Documentation
+│   └── superprompt.md     # Architecture guide (canonical)
+├── CONTRIBUTING.md        # How to contribute
+├── AGENTS.md              # AI agent guidance
+├── package.json           # Dependencies and scripts
+└── .env.example          # Environment template
+```
+
+## Documentation
+
+- **[docs/superprompt.md](docs/superprompt.md)** - Canonical project guide and architecture decisions
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contributor guidelines
+- **[AGENTS.md](AGENTS.md)** - AI agent instructions
+
+## Development Status
+
+### Phase 1: Foundation & Structure ✓ (In Progress)
+- [x] Project architecture defined
+- [x] Starter documentation added
+- [x] Project structure initialized
+- [x] npm setup complete
+
+### Phase 2: Core Implementation
+- [ ] Skape integration implementation
+- [ ] Analysis motor development
+- [ ] Storage layer implementation
+
+### Phase 3: Operations & CI/CD
+- [ ] GitHub Actions workflows
+- [ ] Deployment configuration
+
+## Getting Involved
+
+1. Read the architecture in `docs/superprompt.md`
+2. Check `CONTRIBUTING.md` for development setup
+3. See `AGENTS.md` if you're an AI contributor
+4. Start with Phase 2 implementation tasks
