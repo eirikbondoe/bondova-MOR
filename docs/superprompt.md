@@ -48,10 +48,12 @@ Output (Analysis Results)
 - Transforms external format → internal format
 
 ### 2. Analysis Motor (`src/motor/`)
-- Core analysis logic and algorithms
-- Processing pipeline orchestration
-- Extensible for different analysis types
-- Performance optimized for batch and real-time processing
+- **Implementation:** Powered by **Grok API** via Anthropic SDK
+- Core analysis logic with Grok's reasoning capabilities
+- Single `analyze()` method for idea evaluation
+- Batch processing support via `analyzeBatch()`
+- Structured analysis output with feasibility, impact, novelty assessment
+- Performance optimized for single and batch processing
 
 ### 3. Storage Layer (`src/storage/`)
 - Database abstraction layer
@@ -72,20 +74,21 @@ Output (Analysis Results)
 
 - **Runtime:** Node.js
 - **Package Manager:** npm
+- **Analysis Engine:** Grok API (via Anthropic SDK)
 - **Database:** (To be determined based on requirements)
 - **Testing:** Jest or similar
 - **CI/CD:** GitHub Actions
 
 ## Development Phases
 
-### Phase 1: Foundation & Structure ✓ (In Progress)
+### Phase 1: Foundation & Structure ✓ (Complete)
 - [x] Define Architecture
 - [x] Add Starter Documentation
-- [ ] Initialize Project Structure
+- [x] Initialize Project Structure
 
 ### Phase 2: Core Implementation
-- [ ] Skape Integration
-- [ ] Analysis Motor Implementation
+- [ ] Skape Integration (Adapter)
+- [x] Analysis Motor Implementation (Grok-powered) ✓ Phase 2a: Complete
 - [ ] Storage & State Management
 
 ### Phase 3: Operations & CI/CD
@@ -107,15 +110,72 @@ Configuration via environment variables (see `.env.example`):
 - `NODE_ENV` - Environment (development/production/test)
 - `DATABASE_URL` - Database connection string
 - `SKAPE_API_KEY` - API key for Skape integration (if applicable)
-- `MOTOR_CONFIG` - Motor-specific configuration
+- `SKAPE_API_URL` - API URL for Skape integration
+- `GROK_API_KEY` - **Required** - API key for Grok analysis engine
+- `MOTOR_BATCH_SIZE` - Batch size for idea processing (default: 100)
+- `MOTOR_TIMEOUT_MS` - Motor processing timeout in milliseconds (default: 30000)
+
+## Using the Grok Analysis Motor
+
+### Basic Usage
+
+```javascript
+import GrokMotor from './src/motor/grok-engine.js';
+
+// Initialize motor with API key
+const motor = new GrokMotor(process.env.GROK_API_KEY);
+
+// Analyze a single idea
+const idea = {
+  id: 'idea-1',
+  title: 'Sustainable Energy Solution',
+  description: 'Develop a new solar panel technology with 50% higher efficiency',
+  tags: ['energy', 'sustainability', 'technology']
+};
+
+const analysis = await motor.analyze(idea);
+console.log(analysis);
+
+// Output includes:
+// - feasibility assessment
+// - impact evaluation
+// - novelty assessment
+// - key strengths and challenges
+// - next steps recommendation
+// - overall summary
+```
+
+### Batch Processing
+
+```javascript
+const ideas = [
+  { id: 'idea-1', title: '...', description: '...', tags: [...] },
+  { id: 'idea-2', title: '...', description: '...', tags: [...] },
+  // ... more ideas
+];
+
+const analyses = await motor.analyzeBatch(ideas);
+// Returns array of analysis results
+```
+
+### Running with Demo
+
+```bash
+npm start -- --demo
+```
+
+This analyzes an example idea and displays the Grok analysis output.
 
 ## Getting Started
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Copy `.env.example` to `.env.local` and fill in values
+3. Copy `.env.example` to `.env.local` and fill in values:
+   - **Required:** `GROK_API_KEY` - Get from your Anthropic/Grok account
+   - Optional: `DATABASE_URL`, `SKAPE_API_KEY`, etc.
 4. Run tests: `npm test`
 5. Start development: `npm start` or `npm run dev`
+6. Try the demo: `npm start -- --demo`
 
 ## Testing Strategy
 
